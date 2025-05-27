@@ -3,10 +3,8 @@ main = "src/index.ts"
 compatibility_date = "2024-09-02"
 minify = true
 
-r2_buckets  = [
-  { binding = "BUCKET", bucket_name = "programas-fibra-geo" }
-]
+r2_buckets = [{ binding = "BUCKET", bucket_name = "programas-fibra-geo" }]
 
 [vars]
-PMTILES_PATH = "map.pmtiles"
+PMTILES_PATH = "{name}.pmtiles"
 ALLOWED_ORIGINS = "*"
