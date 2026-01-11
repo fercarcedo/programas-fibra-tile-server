@@ -102,6 +102,7 @@ export default {
     const cache = caches.default;
 
     if (!ok) {
+      console.error("Invalid URL: ", url);
       return new Response("Invalid URL", { status: 404 });
     }
 
@@ -130,11 +131,12 @@ export default {
     const cacheableResponse = (
       body: ArrayBuffer | string | undefined,
       cacheableHeaders: Headers,
-      status: number
+      status: number,
+      cacheOverride: string | undefined = undefined
     ) => {
       cacheableHeaders.set(
         "Cache-Control",
-        env.CACHE_CONTROL || "public, max-age=86400"
+        cacheOverride || env.CACHE_CONTROL || "public, max-age=86400"
       );
 
       const cacheable = new Response(body, {
@@ -162,11 +164,12 @@ export default {
         const t = await p.getTileJson(
           `https://${env.PUBLIC_HOSTNAME || url.hostname}/${name}`
         );
-        return cacheableResponse(JSON.stringify(t), cacheableHeaders, 200);
+        return cacheableResponse(JSON.stringify(t), cacheableHeaders, 200, "public, max-age=3600");
       }
 
       if (tile[0] < pHeader.minZoom || tile[0] > pHeader.maxZoom) {
-        return cacheableResponse(undefined, cacheableHeaders, 404);
+        console.warn("Invalid zoom: ", tile[0], pHeader.minZoom, pHeader.maxZoom);
+        return cacheableResponse(undefined, cacheableHeaders, 204);
       }
 
       for (const pair of [
@@ -212,6 +215,7 @@ export default {
       return cacheableResponse(undefined, cacheableHeaders, 204);
     } catch (e) {
       if (e instanceof KeyNotFoundError) {
+        console.error("Archive not found");
         return cacheableResponse("Archive not found", cacheableHeaders, 404);
       }
       throw e;
