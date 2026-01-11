@@ -97,7 +97,13 @@ export default {
       return new Response(undefined, { status: 405 });
 
     const url = new URL(request.url);
-    const { ok, name, tile, ext } = tile_path(url.pathname);
+    let path = url.pathname;
+    const lastPart = path.split('/').pop();
+    if (lastPart && !lastPart.includes(".")) {
+      path = `${path}.mvt`;
+    }
+
+    const { ok, name, tile, ext } = tile_path(path);
 
     const cache = caches.default;
 
