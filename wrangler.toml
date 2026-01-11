@@ -9,3 +9,6 @@ r2_buckets = [{ binding = "BUCKET", bucket_name = "programas-fibra-geo" }]
 PMTILES_PATH = "{name}.pmtiles"
 ALLOWED_ORIGINS = "*"
 CACHE_CONTROL = "public, max-age=31536000, immutable"
+
+[observability]
+enabled = true
