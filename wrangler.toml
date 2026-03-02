@@ -15,7 +15,7 @@ IGN_STYLE = "default"
 IGN_TILEMATRIXSET = "GoogleMapsCompatible"
 IGN_TILESET_NAME = "ign-pnoa"
 IGN_FORMAT = "image/jpeg"
-IGN_CACHE_CONTROL = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000"
+IGN_CACHE_CONTROL = "public, max-age=604800, s-maxage=7776000, stale-while-revalidate=1209600, stale-if-error=2592000"
 
 [observability]
 enabled = true

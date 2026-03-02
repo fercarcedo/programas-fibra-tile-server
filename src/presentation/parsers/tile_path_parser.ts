@@ -1,16 +1,8 @@
-export const pmtiles_path = (name: string, setting?: string): string => {
-  if (setting) {
-    return setting.replaceAll("{name}", name);
-  }
-  return name + ".pmtiles";
-};
-
 const TILE =
   /^\/(?<NAME>[0-9a-zA-Z\/!\-_\.\*\'\(\)]+)\/(?<Z>\d+)\/(?<X>\d+)\/(?<Y>\d+).(?<EXT>[a-z]+)$/;
-
 const TILESET = /^\/(?<NAME>[0-9a-zA-Z\/!\-_\.\*\'\(\)]+).json$/;
 
-export const tile_path = (
+export const parseTilePath = (
   path: string
 ): {
   ok: boolean;
@@ -18,17 +10,15 @@ export const tile_path = (
   tile?: [number, number, number];
   ext: string;
 } => {
-  const tile_match = path.match(TILE);
-
-  if (tile_match) {
-    const g = tile_match.groups!;
+  const tileMatch = path.match(TILE);
+  if (tileMatch) {
+    const g = tileMatch.groups!;
     return { ok: true, name: g.NAME, tile: [+g.Z, +g.X, +g.Y], ext: g.EXT };
   }
 
-  const tileset_match = path.match(TILESET);
-
-  if (tileset_match) {
-    const g = tileset_match.groups!;
+  const tilesetMatch = path.match(TILESET);
+  if (tilesetMatch) {
+    const g = tilesetMatch.groups!;
     return { ok: true, name: g.NAME, ext: "json" };
   }
 
