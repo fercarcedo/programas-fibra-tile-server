@@ -1,7 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert";
 
-import { pmtiles_path, tile_path } from "./index";
+import { pmtiles_path } from "./index";
 
 test("pmtiles path", () => {
   let result = pmtiles_path("foo", undefined);
@@ -24,4 +24,3 @@ test("pmtiles path with multiple names", () => {
   result = pmtiles_path("foo/bar", "folder/{name}/{name}.pmtiles");
   assert.strictEqual(result, "folder/foo/bar/foo/bar.pmtiles");
 });
-

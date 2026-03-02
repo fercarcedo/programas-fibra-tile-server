@@ -9,6 +9,13 @@ r2_buckets = [{ binding = "BUCKET", bucket_name = "programas-fibra-geo" }]
 PMTILES_PATH = "{name}.pmtiles"
 ALLOWED_ORIGINS = "*"
 CACHE_CONTROL = "public, max-age=31536000, immutable"
+IGN_WMTS_BASE_URL = "https://www.ign.es/wmts/pnoa-ma"
+IGN_LAYER = "OI.OrthoimageCoverage"
+IGN_STYLE = "default"
+IGN_TILEMATRIXSET = "GoogleMapsCompatible"
+IGN_TILESET_NAME = "ign-pnoa"
+IGN_FORMAT = "image/jpeg"
+IGN_CACHE_CONTROL = "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000"
 
 [observability]
 enabled = true

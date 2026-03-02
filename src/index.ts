@@ -20,6 +20,20 @@ interface Env {
   PMTILES_PATH?: string;
   // biome-ignore lint: config name
   PUBLIC_HOSTNAME?: string;
+  // biome-ignore lint: config name
+  IGN_CACHE_CONTROL?: string;
+  // biome-ignore lint: config name
+  IGN_FORMAT?: string;
+  // biome-ignore lint: config name
+  IGN_LAYER?: string;
+  // biome-ignore lint: config name
+  IGN_STYLE?: string;
+  // biome-ignore lint: config name
+  IGN_TILEMATRIXSET?: string;
+  // biome-ignore lint: config name
+  IGN_TILESET_NAME?: string;
+  // biome-ignore lint: config name
+  IGN_WMTS_BASE_URL?: string;
 }
 
 class KeyNotFoundError extends Error {}
@@ -98,19 +112,30 @@ export default {
 
     const url = new URL(request.url);
     let path = url.pathname;
-    const lastPart = path.split('/').pop();
+    const ignTilesetName = env.IGN_TILESET_NAME || "ign-pnoa";
+    const defaultIgnExtByFormat: Record<string, string> = {
+      "image/jpeg": "jpg",
+      "image/png": "png",
+      "image/webp": "webp",
+    };
+    const ignDefaultExt =
+      defaultIgnExtByFormat[(env.IGN_FORMAT || "image/jpeg").toLowerCase()] ||
+      "jpg";
+    const firstPathSegment = path.replace(/^\/+/, "").split("/")[0] || "";
+    const lastPart = path.split("/").pop();
     if (lastPart && !lastPart.includes(".")) {
-      path = `${path}.mvt`;
+      const defaultExt =
+        firstPathSegment === ignTilesetName ? ignDefaultExt : "mvt";
+      path = `${path}.${defaultExt}`;
     }
 
     const { ok, name, tile, ext } = tile_path(path);
-
-    const cache = caches.default;
-
     if (!ok) {
       console.error("Invalid URL: ", url);
       return new Response("Invalid URL", { status: 404 });
     }
+
+    const cache = caches.default;
 
     let allowedOrigin = "";
     if (typeof env.ALLOWED_ORIGINS !== "undefined") {
@@ -160,6 +185,78 @@ export default {
     };
 
     const cacheableHeaders = new Headers();
+    if (name === ignTilesetName) {
+      if (!tile) {
+        cacheableHeaders.set("Content-Type", "application/json");
+        const host = env.PUBLIC_HOSTNAME || url.hostname;
+        const tileJson = {
+          tilejson: "3.0.0",
+          name: ignTilesetName,
+          scheme: "xyz",
+          tiles: [`https://${host}/${ignTilesetName}/{z}/{x}/{y}.jpg`],
+        };
+        return cacheableResponse(
+          JSON.stringify(tileJson),
+          cacheableHeaders,
+          200,
+          "public, max-age=3600"
+        );
+      }
+
+      const [z, x, y] = tile;
+      const requestedFormatByExt: Record<string, string> = {
+        jpg: "image/jpeg",
+        jpeg: "image/jpeg",
+        png: "image/png",
+        webp: "image/webp",
+      };
+      const requestedFormat = requestedFormatByExt[ext];
+      if (!requestedFormat) {
+        return cacheableResponse(
+          `Bad request: requested .${ext} but supported formats are .jpg, .jpeg, .png, .webp`,
+          cacheableHeaders,
+          400
+        );
+      }
+
+      const wmtsUrl = new URL(
+        env.IGN_WMTS_BASE_URL || "https://www.ign.es/wmts/pnoa-ma"
+      );
+      wmtsUrl.searchParams.set("layer", env.IGN_LAYER || "OI.OrthoimageCoverage");
+      wmtsUrl.searchParams.set("style", env.IGN_STYLE || "default");
+      wmtsUrl.searchParams.set(
+        "tilematrixset",
+        env.IGN_TILEMATRIXSET || "GoogleMapsCompatible"
+      );
+      wmtsUrl.searchParams.set("Service", "WMTS");
+      wmtsUrl.searchParams.set("Request", "GetTile");
+      wmtsUrl.searchParams.set("Version", "1.0.0");
+      wmtsUrl.searchParams.set("Format", requestedFormat);
+      wmtsUrl.searchParams.set("TileMatrix", `${z}`);
+      wmtsUrl.searchParams.set("TileCol", `${x}`);
+      wmtsUrl.searchParams.set("TileRow", `${y}`);
+
+      const upstream = await fetch(wmtsUrl.toString());
+      cacheableHeaders.set(
+        "Content-Type",
+        upstream.headers.get("Content-Type") || requestedFormat
+      );
+
+      if (!upstream.ok) {
+        const errorBody = await upstream.text();
+        return cacheableResponse(errorBody, cacheableHeaders, upstream.status, "public, max-age=300");
+      }
+
+      const body = await upstream.arrayBuffer();
+      return cacheableResponse(
+        body,
+        cacheableHeaders,
+        200,
+        env.IGN_CACHE_CONTROL ||
+          "public, max-age=86400, s-maxage=604800, stale-while-revalidate=2592000"
+      );
+    }
+
     const source = new R2Source(env, name);
     const p = new PMTiles(source, CACHE, nativeDecompress);
     try {
